@@ -7,7 +7,11 @@ import { addDoc, collection, deleteDoc, doc, getDocs ,getDoc} from "firebase/fir
 function App() {
   const [emp, setemp] = useState([]);
   const [employee,setEmployee]=useState([]);
-  const[empId,setEmpid]=useState([])
+  const[empId,setEmpid]=useState([]);
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState(true); 
+  const recordsPerPage = 2;
   useEffect(() => {
     alldata();
   }, [setemp])
@@ -59,10 +63,36 @@ function App() {
       console.log("No such document!");
     }
   };
+  const handleSort = () => {
+    let sortedData = [...emp];
+    sortedData.sort((a, b) => {
+        if (a.name.toLowerCase() < b.name.toLowerCase()) return sortOrder ? -1 : 1;
+        if (a.name.toLowerCase() > b.name.toLowerCase()) return sortOrder ? 1 : -1;
+        return 0;
+    });
+    setSortOrder(!sortOrder);
+    setemp(sortedData);
+};
+const filteredData = emp.filter((item) =>
+  search.toLowerCase() === "" ? item : item.name.toLowerCase().includes(search.toLowerCase())
+);
+
+const indexOfLastRecord = currentPage * recordsPerPage;
+const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+const currentRecords = filteredData.slice(indexOfFirstRecord, indexOfLastRecord);
+const totalPages = Math.ceil(filteredData.length / recordsPerPage);
+
   return (
     <>
       <div>
         <h2>Data Set</h2>
+        <input
+                type='text'
+                placeholder='Search by name...'
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className='search-input'
+            />
         <form method="post" onSubmit={(e)=>submitData(e)}>
         <table border={1}>
           <tr>
@@ -89,13 +119,14 @@ function App() {
         </form>
         <br>
         </br>
+        <button onClick={handleSort} className='sort-button'>Sort by Name ⬆⬇</button>
         <table border={1}>
         <tbody>
                 <tr>
                   <td>No</td>
                   <td>Name</td>
                   <td>Age</td>
-                  <td>Action</td>
+                  <td colSpan={2} style={{textAlign:"center"}}>Action</td>
                 </tr>
               </tbody>
           {emp.map((v, i) => {
@@ -118,6 +149,11 @@ function App() {
             )
           })}
         </table>
+        <div className='pagination'>
+                <button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1}>Prev</button>
+                <span> Page {currentPage} of {totalPages} </span>
+                <button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>Next</button>
+            </div>
       </div>
     </>
   )
